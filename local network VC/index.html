@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Feed</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Video Feed</h1>
+    <img id="video-feed" src="" width="100%">
+    <div>
+        <button onclick="connect('sanskar')">Sanskar</button>
+        <button onclick="connect('anubhav')">Anubhav</button>
+        <button onclick="connectAll()">Connect All</button>
+        <button onclick="disconnectAll()">Disconnect All</button>
+    </div>
+    <script>
+        var socket = io();
+
+        function connect(user) {
+            socket.emit('connect_user', { user: user });
+        }
+
+        function disconnect(user) {
+            socket.emit('disconnect_user', { user: user });
+        }
+
+        function connectAll() {
+            socket.emit('connect_all');
+        }
+
+        function disconnectAll() {
+            socket.emit('disconnect_all');
+        }
+
+        socket.on('user_connected', function(data) {
+            console.log(data.user + " connected.");
+        });
+
+        socket.on('user_disconnected', function(data) {
+            console.log(data.user + " disconnected.");
+        });
+
+        socket.on('all_connected', function(data) {
+            console.log("All users connected.");
+        });
+
+        socket.on('all_disconnected', function(data) {
+            console.log("All users disconnected.");
+        });
+
+        socket.on('video_feed', function(data) {
+            document.getElementById('video-feed').src = data.feed; // Example logic to set video source
+        });
+
+        // Request video feed on page load or based on a condition
+        socket.emit('request_video_feed');
+    </script>
+</body>
+</html>
