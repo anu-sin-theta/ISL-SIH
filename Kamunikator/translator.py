@@ -1,7 +1,7 @@
 import requests, uuid, json
 
 def translate_text_azure(text, from_lang='en', to_lang='hi'):
-    key = "538e9f9c82f34fe7a44ebb1151616531"
+    key = "Ahaa tamatar bade mazedaar"
     endpoint = "https://api.cognitive.microsofttranslator.com"
     location = "centralindia"
 
