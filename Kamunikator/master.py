@@ -1,3 +1,6 @@
+import requests
+from socketIO_client import SocketIO
+
 import firebase_admin
 from firebase_admin import credentials, firestore
 import azure.cognitiveservices.speech as speechsdk
@@ -7,19 +10,22 @@ from translator import translate_text_azure
 import webbrowser
 import threading
 import time
+import pyaudio
 
-cred = credentials.Certificate('isl-sih-firebase-adminsdk-34c6u-4b9c452afa.json')
+cred = credentials.Certificate('isl-sih-firebase-adminsdk-34c6u-4b9c452afa.json'
+
+
+                               )
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Azure Speech SDK configuration
 speech_key = "db94b5a202ac4a7aacde0b5343ed2264"
 service_region = "centralindia"
 speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region)
 audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=True)
 synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
 
-translator_key = "538e9f9c82f34fe7a44ebb1151616531"
+translator_key = "Nobody nobody but you, I want nobody nobody but you"
 translator_endpoint = "https://api.cognitive.microsofttranslator.com"
 translator_client = TextTranslationClient(endpoint=translator_endpoint, credential=AzureKeyCredential(translator_key))
 
@@ -36,18 +42,32 @@ def text_to_speech(text):
         if cancellation_details.reason == speechsdk.CancellationReason.Error:
             print("Error details: {}".format(cancellation_details.error_details))
 
-def open_video_feed(user):
-    url = f"http://127.0.0.1:5000/video_feed/{user}"
+def open_media_feed(user):
+    url = f"http://127.0.0.1:5000/media_feed/{user}"
     webbrowser.open(url)
 
-def video_feed_thread(user):
+def media_feed_thread(user):
     global stop_thread
-    open_video_feed(user)
+    open_media_feed(user)
     while not stop_thread:
         time.sleep(1)
 
+def send_audio_to_server():
+    audio = pyaudio.PyAudio()
+    stream = audio.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, frames_per_buffer=1024)
+    while not stop_thread:
+        audio_frame = stream.read(1024)
+        requests.post("http://127.0.0.1:5000/audio", data=audio_frame)
+    stream.stop_stream()
+    stream.close()
+    audio.terminate()
+
+
+
 if __name__ == "__main__":
     video_thread = None
+    audio_thread = None
+
     while True:
         try:
             anubhav_ref = db.collection('users').document('Anubhav')
@@ -64,8 +84,10 @@ if __name__ == "__main__":
                         text_to_speech(translated_text)
                         if video_thread is None or not video_thread.is_alive():
                             stop_thread = False
-                            video_thread = threading.Thread(target=video_feed_thread, args=("Anubhav",))
+                            video_thread = threading.Thread(target=media_feed_thread, args=("Anubhav",))
                             video_thread.start()
+                            audio_thread = threading.Thread(target=send_audio_to_server)
+                            audio_thread.start()
                         last_data_time = time.time()
                         anubhav_ref.set({'output': ''})
                     except Exception as e:
@@ -80,8 +102,10 @@ if __name__ == "__main__":
                         text_to_speech(translated_text)
                         if video_thread is None or not video_thread.is_alive():
                             stop_thread = False
-                            video_thread = threading.Thread(target=video_feed_thread, args=("Anubhav",))
+                            video_thread = threading.Thread(target=media_feed_thread, args=("Anubhav",))
                             video_thread.start()
+                            audio_thread = threading.Thread(target=send_audio_to_server)
+                            audio_thread.start()
                         last_data_time = time.time()
                         all_ref.set({'output': ''})
                     except Exception as e:
@@ -98,3 +122,4 @@ if __name__ == "__main__":
 
         except Exception as e:
             print(f"Error in main loop: {e}")
+

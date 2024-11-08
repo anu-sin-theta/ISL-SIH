@@ -30,3 +30,5 @@ def translate_text_azure(text, from_lang='en', to_lang='hi'):
 
     return response[0]['translations'][0]['text']
 
+
+# print(translate_text_azure("Hello world"))
